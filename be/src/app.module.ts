@@ -7,10 +7,12 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import database from './config/database';
 import { ProductEntity } from './module/product/command/product.entity';
 import { MongooseModule } from '@nestjs/mongoose';
+import { QueueModule } from './module/queue/queue.module';
+import queue from './config/queue';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ envFilePath: '.env', load: [database] }),
+    ConfigModule.forRoot({ envFilePath: '.env', load: [database, queue] }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
@@ -21,7 +23,7 @@ import { MongooseModule } from '@nestjs/mongoose';
         password: configService.get('database.password'),
         database: configService.get('database.database'),
         entities: [ProductEntity],
-        synchronize: true,
+        // synchronize: true,
       }),
       inject: [ConfigService],
     }),
@@ -29,6 +31,16 @@ import { MongooseModule } from '@nestjs/mongoose';
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
         uri: configService.get('database.mongoUri'),
+      }),
+      inject: [ConfigService],
+    }),
+    QueueModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        host: configService.get('queue.host'),
+        port: +configService.get('queue.port'),
+        user: configService.get('queue.user'),
+        password: configService.get('queue.password'),
       }),
       inject: [ConfigService],
     }),

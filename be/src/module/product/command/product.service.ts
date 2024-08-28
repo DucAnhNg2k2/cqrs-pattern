@@ -1,26 +1,38 @@
 import { Injectable } from '@nestjs/common';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { ProductEntity } from './product.entity';
 import { CreateProductDto } from './dto/create-product.dto';
 import { InjectRepository } from '@nestjs/typeorm';
+import { QueueService } from 'src/module/queue/queue.service';
 
 @Injectable()
 export class ProductCommandService {
   constructor(
     @InjectRepository(ProductEntity)
     private readonly productRepository: Repository<ProductEntity>,
+    private queueService: QueueService,
+    private dataSource: DataSource,
   ) {}
 
   async createProduct(dto: CreateProductDto) {
-    const result = await this.productRepository.insert({
-      id: null,
-      name: dto.name,
-      price: dto.price,
-      description: dto.description,
+    // create-transaction:
+    return this.dataSource.transaction(async (manager) => {
+      const product = await manager.insert(ProductEntity, {
+        id: null,
+        name: dto.name,
+        price: dto.price,
+        description: dto.description,
+      });
+      if (product.identifiers.length) {
+        await this.queueService.publish({
+          id: product.identifiers[0].id,
+          name: dto.name,
+          price: dto.price,
+          description: dto.description,
+        });
+        return true;
+      }
+      return false;
     });
-    if (result.identifiers.length > 0) {
-      return true;
-    }
-    return false;
   }
 }
