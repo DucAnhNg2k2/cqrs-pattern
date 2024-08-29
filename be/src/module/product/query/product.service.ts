@@ -12,7 +12,7 @@ export class ProductQueryService implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
-    this.asyncProduct();
+    await this.asyncProduct();
   }
 
   async getProducts() {
